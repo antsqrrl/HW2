@@ -10,6 +10,9 @@ struct Img {
         int width;
         int height;
 
+        int maskBaseX;
+        int maskBaseY;
+
         Img();
         Img(int w, int h);
         Img( const int* src, int w, int h);
@@ -21,6 +24,10 @@ private :
     Img* srcImg;
     Img* processedImg;
     Img* mask;
+
+    void applyDilatationMask(int x, int y);
+    void applyErosionMask(int x, int y);
+    void subtract();
     //здесь можно объявлять другие переменные и функции
 public :
     //здесь нельзя объявлять функции и переменные
@@ -35,7 +42,7 @@ public :
     ~ImageProcess();
 
     /*задание маски*/
-    int updateMask(const Img& mask);
+    int updateMask(const Img& mask, int maskBaseX, int maskBaseY);
     /*перезаписать исходную картинку картинкой, которая была получена в результате дилотации и/или эрозии*/
     int updateSrcImg();
     /*дилотация картинки, результат записать в processedImg*/
