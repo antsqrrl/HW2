@@ -5,13 +5,15 @@
 #ifndef HW2_HW2_H
 #define HW2_HW2_H
 
+#include <list>
+
 struct Img {
         int* srcImg;
         int width;
         int height;
 
-        int maskBaseX;
-        int maskBaseY;
+        int x_c;
+        int y_c;
 
         Img();
         Img(int w, int h);
@@ -42,13 +44,13 @@ public :
     ~ImageProcess();
 
     /*задание маски*/
-    int updateMask(const Img& mask, int maskBaseX, int maskBaseY);
+    int updateMask(const Img& mask);
     /*перезаписать исходную картинку картинкой, которая была получена в результате дилотации и/или эрозии*/
     int updateSrcImg();
     /*дилотация картинки, результат записать в processedImg*/
-    int dilotation();
+    int dilatation(int srcImg = 1);
     /*эрозия картинки, результат записать в processedImg*/
-    int erosion();
+    int erosion(int srcImg = 1);
     /*
         загрузить/сохранить из файла с имененм fileName картинку
         input		:	fileName - имя файла
@@ -57,6 +59,8 @@ public :
     */
     int loadImgFromFile(const char* fileName, int format = 1);
     int saveImgToFile(const char* fileName, int format = 1);
+
+    std::list<std::list<std::pair<int /*x*/,int /*y*/>>> getListContours();
 };
 
 #endif //HW2_HW2_H

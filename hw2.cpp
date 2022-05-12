@@ -59,16 +59,13 @@ ImageProcess::~ImageProcess()
     delete processedImg;
 }
 
-int ImageProcess::updateMask(const Img &mask, int maskBaseX, int maskBaseY)
+int ImageProcess::updateMask(const Img &mask)
 {
     memcpy(this->mask, &mask, sizeof(int)*((mask.width*mask.height)+4));
-    this->mask->maskBaseX = maskBaseX;
-    this->mask->maskBaseY = maskBaseY;
 }
 int ImageProcess::updateSrcImg()
 {
     memcpy(srcImg->srcImg, processedImg->srcImg, sizeof(int)*((srcImg->width*srcImg->height)+4));
-    //memcpy(processedImg->srcImg, srcImg->srcImg, sizeof(int)*((srcImg->width*srcImg->height)+4));
 }
 
 int ImageProcess::loadImgFromFile(const char *fileName, int format)
@@ -101,7 +98,7 @@ int ImageProcess::saveImgToFile(const char *fileName, int format)
     ofstream fout;
     fout.open(fileName, fstream::out);
 
-    //subtract();
+    subtract();
 
     if (!fout.is_open())
     {
@@ -131,19 +128,15 @@ void ImageProcess::applyDilatationMask(int x, int y)
             {
                 continue;
             }
-            int dX = mask->maskBaseX-w;
-            int dY = mask->maskBaseY-h;
-            int pX = x-dX;
-            int pY = y-dY;
+            int dX = w - mask->x_c;
+            int dY = h - mask->y_c;
+            int pX = x+dX;
+            int pY = y+dY;
             if ((pX < 0) || (pX >= processedImg->width) || (pY < 0) || (pY >= processedImg->height))
             {
                 continue;
             }
             int pIndex = pY*processedImg->width + pX;
-//            if (pIndex < 0)
-//            {
-//                continue;
-//            }
             if (processedImg->srcImg[pIndex] == 0)
             {
                 processedImg->srcImg[pIndex] = 2;
@@ -163,20 +156,36 @@ void ImageProcess::applyErosionMask(int x, int y) // забыл что эрро�
             {
                 continue;
             }
-            int dX = mask->maskBaseX-w;
-            int dY = mask->maskBaseY-h;
-            int pX = x-dX;
-            int pY = y-dY;
+            int dX = w - mask->x_c;
+            int dY = h - mask->y_c;
+            int pX = x+dX;
+            int pY = y+dY;
             if ((pX < 0) || (pX >= processedImg->width) || (pY < 0) || (pY >= processedImg->height))
+            {
+                return;
+            }
+            int pIndex = pY*processedImg->width + pX;
+            if (processedImg->srcImg[pIndex] != 1)
+            {
+                return;
+            }
+        }
+    }
+    for (int h = 0; h < mask->height; h++)
+    {
+        for (int w = 0; w < mask->width; w++)
+        {
+            int index = h*mask->width + w;
+            if (mask->srcImg[index] != 1)
             {
                 continue;
             }
+            int dX = w - mask->x_c;
+            int dY = h - mask->y_c;
+            int pX = x+dX;
+            int pY = y+dY;
             int pIndex = pY*processedImg->width + pX;
-//            if (pIndex < 0)
-//            {
-//                continue;
-//            }
-            if (processedImg->srcImg[pIndex] == 1)
+            //if ((dY != 0) || (dX != 0))
             {
                 processedImg->srcImg[pIndex] = 0;
             }
@@ -185,9 +194,12 @@ void ImageProcess::applyErosionMask(int x, int y) // забыл что эрро�
     }
 }
 
-int ImageProcess::dilotation()
+int ImageProcess::dilatation(int srcImg)
 {
-    memcpy(processedImg->srcImg, srcImg->srcImg, sizeof(int)*((srcImg->width*srcImg->height)+4));
+    if (srcImg == 1)
+    {
+        memcpy(processedImg->srcImg, this->srcImg->srcImg, sizeof(int)*((this->srcImg->width*this->srcImg->height)+4));
+    }
     for (int h = 0; h < processedImg->height; h++)
     {
         for (int w = 0; w < processedImg->width; w++)
@@ -206,9 +218,12 @@ int ImageProcess::dilotation()
     }
 //    subtract();
 }
-int ImageProcess::erosion()
+int ImageProcess::erosion(int srcImg)
 {
-    memcpy(processedImg->srcImg, srcImg->srcImg, sizeof(int)*((srcImg->width*srcImg->height)+4));
+    if (srcImg == 1)
+    {
+        memcpy(processedImg->srcImg, this->srcImg->srcImg, sizeof(int)*((this->srcImg->width*this->srcImg->height)+4));
+    }
     for (int h = 0; h < processedImg->height; h++)
     {
         for (int w = 0; w < processedImg->width; w++)
