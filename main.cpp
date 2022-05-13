@@ -19,9 +19,10 @@ int main() {
     mask->x_c = MASK_BASE_WIDTH;
     mask->y_c = MASK_BASE_HEIGHT;
     imProc->updateMask(*mask);
-    imProc->loadImgFromFile("test.txt");
+    imProc->loadImgFromFile("testc.txt");
     imProc->dilatation();
     //imProc->erosion(0);
+    auto pairs = imProc->getListContours();
     imProc->saveImgToFile("testout.txt");
 
     return 0;

@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstdio>
 #include <fstream>
+#include <algorithm>
 
 #include "hw2.h"
 
@@ -245,5 +246,110 @@ void ImageProcess::subtract()
         {
             processedImg->srcImg[i] = 0;
         }
+    }
+}
+
+std::list<std::list<std::pair<int, int>>> ImageProcess::getListContours()
+{
+    buildContours();
+    list<std::list<std::pair<int, int>>> pContours;
+    for (int i = 0; i < contours.size(); i++)
+    {
+        list<pair<int, int>> pContour;
+        auto contour = contours[i];
+        for (int j = 0; j < contour.size(); j++)
+        {
+            pContour.push_back(getCoordsByIndex(contour[j]));
+        }
+        pContours.push_back(pContour);
+    }
+    return pContours;
+}
+
+void ImageProcess::buildContours()
+{
+    this->contours.clear();
+    for (int i = 0; i < processedImg->width*processedImg->height; i++)
+    {
+        if (processedImg->srcImg[i] == 1)
+        {
+            auto contour = isIndexInList(i);
+            if (contour != nullptr)
+            {
+                continue;
+            }
+            bool isAdded = false;
+            vector<vector<int>*> contoursToMerge;
+            auto coords = getCoordsByIndex(i);
+            for (int y = -1; y <= 1; y++)
+            {
+                for (int x = -1; x <= 1; x++)
+                {
+                    auto nIdx =  (y+coords.second)*processedImg->width + x + coords.first;
+                    if ((x == 0) && (y == 0))
+                    {
+                        continue;
+                    }
+                    auto cont = isIndexInList(nIdx);
+                    if (cont != nullptr)
+                    {
+                        if (!isAdded)
+                        {
+                            cont->push_back(i);
+                            isAdded = true;
+                        }
+                        if (!(std::find(contoursToMerge.begin(), contoursToMerge.end(), cont) != contoursToMerge.end()))
+                        {
+                            contoursToMerge.push_back(cont);
+                        }
+                    }
+                }
+            }
+            if (!isAdded)
+            {
+                vector<int> cntr;
+                cntr.push_back(i);
+                contours.push_back(cntr);
+            }
+            else
+            {
+                if (contoursToMerge.size() > 1)
+                {
+                    mergeContours(contoursToMerge);
+                }
+            }
+        }
+    }
+}
+
+std::vector<int> *ImageProcess::isIndexInList(int index)
+{
+    for (int i = 0; i < contours.size(); i++)
+    {
+        auto contour = contours[i];
+        if ((std::find(contour.begin(), contour.end(), index) != contour.end()))
+        {
+            return &contours[i];
+        }
+    }
+    return nullptr;
+}
+
+std::pair<int, int> ImageProcess::getCoordsByIndex(int index)
+{
+    int y = index / processedImg->width;
+    int x = index - y*processedImg->width;
+    return make_pair(x, y);
+}
+
+void ImageProcess::mergeContours(std::vector<std::vector<int> *> conts)
+{
+    for (int i = 1; i < conts.size(); i++)
+    {
+        for (int j = 0; j < conts[i]->size(); j++)
+        {
+            conts[0]->push_back((*conts[i])[j]);
+        }
+        contours.erase(std::remove(contours.begin(), contours.end(), *conts[i]), contours.end());
     }
 }
