@@ -30,13 +30,13 @@ private :
     Img* processedImg;
     Img* mask;
 
-    std::vector<std::vector<int>> contours;
+    std::vector<std::vector<int>*> contours;
     std::vector<int>* isIndexInList(int index);
     std::pair<int, int> getCoordsByIndex(int index);
 
     void mergeContours(std::vector<std::vector<int>*> conts);
     void applyDilatationMask(int x, int y);
-    void applyErosionMask(int x, int y);
+    void checkAndApplyErosionMask(int x, int y);
     void subtract();
     void buildContours();
     //здесь можно объявлять другие переменные и функции

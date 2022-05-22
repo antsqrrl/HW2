@@ -99,7 +99,6 @@ int ImageProcess::saveImgToFile(const char *fileName, int format)
     ofstream fout;
     fout.open(fileName, fstream::out);
 
-    subtract();
 
     if (!fout.is_open())
     {
@@ -146,8 +145,9 @@ void ImageProcess::applyDilatationMask(int x, int y)
         }
     }
 }
-void ImageProcess::applyErosionMask(int x, int y) // забыл что эррозия применяется если полное совпадение с маской
+void ImageProcess::checkAndApplyErosionMask(int x, int y)
 {
+    bool isApplyMask = false;
     for (int h = 0; h < mask->height; h++)
     {
         for (int w = 0; w < mask->width; w++)
@@ -163,36 +163,53 @@ void ImageProcess::applyErosionMask(int x, int y) // забыл что эрро�
             int pY = y+dY;
             if ((pX < 0) || (pX >= processedImg->width) || (pY < 0) || (pY >= processedImg->height))
             {
-                return;
+                continue;
             }
             int pIndex = pY*processedImg->width + pX;
             if (processedImg->srcImg[pIndex] != 1)
             {
-                return;
+                isApplyMask = true;
             }
         }
     }
-    for (int h = 0; h < mask->height; h++)
+    if (isApplyMask)
     {
-        for (int w = 0; w < mask->width; w++)
-        {
-            int index = h*mask->width + w;
-            if (mask->srcImg[index] != 1)
-            {
-                continue;
-            }
-            int dX = w - mask->x_c;
-            int dY = h - mask->y_c;
-            int pX = x+dX;
-            int pY = y+dY;
-            int pIndex = pY*processedImg->width + pX;
-            //if ((dY != 0) || (dX != 0))
-            {
-                processedImg->srcImg[pIndex] = 0;
-            }
-
-        }
+        int pIndex = y*processedImg->width + x;
+        processedImg->srcImg[pIndex] = 5;
     }
+    ////////
+//    if (isApplyMask)
+//    {
+//        for (int h = 0; h < mask->height; h++)
+//        {
+//            for (int w = 0; w < mask->width; w++)
+//            {
+//                int index = h * mask->width + w;
+//                if (mask->srcImg[index] != 1)
+//                {
+//                    continue;
+//                }
+//                int dX = w - mask->x_c;
+//                int dY = h - mask->y_c;
+//                int pX = x + dX;
+//                int pY = y + dY;
+//                if ((pX < 0) || (pX >= processedImg->width) || (pY < 0) || (pY >= processedImg->height))
+//                {
+//                    continue;
+//                }
+//                if ((pX == 0) || (pY == 0))
+//                {
+//                    continue;
+//                }
+//                int pIndex = pY * processedImg->width + pX;
+//                if (processedImg->srcImg[pIndex] == 1)
+//                {
+//                    processedImg->srcImg[pIndex] = 5;
+//                }
+//            }
+//        }
+//    }
+
 }
 
 int ImageProcess::dilatation(int srcImg)
@@ -201,6 +218,7 @@ int ImageProcess::dilatation(int srcImg)
     {
         memcpy(processedImg->srcImg, this->srcImg->srcImg, sizeof(int)*((this->srcImg->width*this->srcImg->height)+4));
     }
+    //return 0;
     for (int h = 0; h < processedImg->height; h++)
     {
         for (int w = 0; w < processedImg->width; w++)
@@ -217,7 +235,7 @@ int ImageProcess::dilatation(int srcImg)
     {
         processedImg->srcImg[i] = processedImg->srcImg[i] == 0 ? 0 : 1;
     }
-//    subtract();
+    subtract();
 }
 int ImageProcess::erosion(int srcImg)
 {
@@ -230,13 +248,17 @@ int ImageProcess::erosion(int srcImg)
         for (int w = 0; w < processedImg->width; w++)
         {
             int index = h*processedImg->width + w;
-            if (processedImg->srcImg[index] != 1)
+            if (processedImg->srcImg[index] == 0)
             {
                 continue;
             }
-            applyErosionMask(w, h);
+            checkAndApplyErosionMask(w, h);
         }
     }
+//    for (int i = 0;i < processedImg->width*processedImg->height; i++)
+//    {
+//        processedImg->srcImg[i] = processedImg->srcImg[i] == 1 ? 1 : 0;
+//    }
 }
 void ImageProcess::subtract()
 {
@@ -257,9 +279,9 @@ std::list<std::list<std::pair<int, int>>> ImageProcess::getListContours()
     {
         list<pair<int, int>> pContour;
         auto contour = contours[i];
-        for (int j = 0; j < contour.size(); j++)
+        for (int j = 0; j < contour->size(); j++)
         {
-            pContour.push_back(getCoordsByIndex(contour[j]));
+            pContour.push_back(getCoordsByIndex((*contour)[j]));
         }
         pContours.push_back(pContour);
     }
@@ -307,8 +329,9 @@ void ImageProcess::buildContours()
             }
             if (!isAdded)
             {
-                vector<int> cntr;
-                cntr.push_back(i);
+                //vector<int> cntr;
+                auto cntr = new vector<int>;
+                cntr->push_back(i);
                 contours.push_back(cntr);
             }
             else
@@ -326,10 +349,10 @@ std::vector<int> *ImageProcess::isIndexInList(int index)
 {
     for (int i = 0; i < contours.size(); i++)
     {
-        auto contour = contours[i];
+        std::vector<int> contour = *(contours[i]);
         if ((std::find(contour.begin(), contour.end(), index) != contour.end()))
         {
-            return &contours[i];
+            return contours[i];
         }
     }
     return nullptr;
@@ -350,6 +373,6 @@ void ImageProcess::mergeContours(std::vector<std::vector<int> *> conts)
         {
             conts[0]->push_back((*conts[i])[j]);
         }
-        contours.erase(std::remove(contours.begin(), contours.end(), *conts[i]), contours.end());
+        contours.erase(std::remove(contours.begin(), contours.end(), conts[i]), contours.end());
     }
 }
